@@ -43,7 +43,7 @@ You can download the pre-trained model from [[Google Drive]](https://drive.googl
 
 Here is the prompts use to generate the coresponding textual informaton of time series via [[OPENAI ChatGPT-3.5 API]](https://platform.openai.com/docs/guides/text-generation)
 
-<div align="center"><img src=./pics/TETS_prompt.jpg, width=80% /></div>
+<div align="center"><img src=./pics/TETS_prompt.png, width=80% /></div>
 
 The time series data are come from [[S&P 500]](https://www.spglobal.com/spdji/en/indices/equity/sp-500/#overview).
 
