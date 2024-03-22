@@ -31,9 +31,14 @@ bash [ecl, etth1, etth2, ettm1, ettm2, traffic, weather].sh
 
 ## Test
 
+After training, we can test TEMPO model under the zero-shot setting:
+
 ```
 bash [ecl, etth1, etth2, ettm1, ettm2, traffic, weather]_test.sh
 ```
+
+<div align="center"><img src=./pics/results.jpg width=90% /></div>
+
 
 # Pre-trained Models
 
@@ -45,10 +50,20 @@ Here is the prompts use to generate the coresponding textual informaton of time 
 
 <div align="center"><img src=./pics/TETS_prompt.png width=80% /></div>
 
-The time series data are come from [[S&P 500]](https://www.spglobal.com/spdji/en/indices/equity/sp-500/#overview).
+The time series data are come from [[S&P 500]](https://www.spglobal.com/spdji/en/indices/equity/sp-500/#overview). Here is the EBITDA case for one company from the dataset:
+
+
+<div align="center"><img src=./pics/Company1_ebitda_summary.png width=80% /></div>
+
+Example of generated contextual information for the Company marked above:
+
+<div align="center"><img src=./pics/Company1_ebitda_summary_words.jpg width=80% /></div>
+
+
+
 
 You can download the processed data with text embedding from GPT2 from: [[TETS]](https://drive.google.com/file/d/1Hu2KFj0kp4kIIpjbss2ciLCV_KiBreoJ/view?usp=drive_link
-)
+).
 
 
 
