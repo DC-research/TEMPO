@@ -20,7 +20,7 @@ pip install -r requirements.txt
 
 # Get Data
 
-   Download the data from [[Google Drive]](https://drive.google.com/drive/folders/13Cg1KYOlzM5C7K8gK8NfC-F3EYxkM3D2?usp=sharing) or [[Baidu Drive]](https://pan.baidu.com/s/1r3KhGd0Q9PJIUZdfEYoymg?pwd=i9iy), and place the downloaded data in the folder`./dataset`
+   Download the data from [[Google Drive]](https://drive.google.com/drive/folders/13Cg1KYOlzM5C7K8gK8NfC-F3EYxkM3D2?usp=sharing) or [[Baidu Drive]](https://pan.baidu.com/s/1r3KhGd0Q9PJIUZdfEYoymg?pwd=i9iy), and place the downloaded data in the folder`./dataset`. You can also download the STL results from [[Google Drive]](https://drive.google.com/file/d/1gWliIGDDSi2itUAvYaRgACru18j753Kw/view?usp=sharing), and place the downloaded data in the folder`./stl`.
 
 # Run TEMPO
 
@@ -38,6 +38,19 @@ bash [ecl, etth1, etth2, ettm1, ettm2, traffic, weather]_test.sh
 # Pre-trained Models
 
 You can download the pre-trained model from [[Google Drive]](https://drive.google.com/file/d/11Ho_seP9NGh-lQCyBkvQhAQFy_3XVwKp/view?usp=drive_link) and then run the test script for fun.
+
+# TETS dataset
+
+Here is the prompts use to generate the coresponding textual informaton of time series via [[OPENAI ChatGPT-3.5 API]](https://platform.openai.com/docs/guides/text-generation)
+
+<div align="center"><img src=./pics/TETS_prompt.jpg, width=80% /></div>
+
+The time series data are come from [[S&P 500]](https://www.spglobal.com/spdji/en/indices/equity/sp-500/#overview).
+
+You can download the processed data with text embedding from GPT2 from: [[TETS]](https://drive.google.com/file/d/1Hu2KFj0kp4kIIpjbss2ciLCV_KiBreoJ/view?usp=drive_link
+)
+
+
 
 ## Cite
 ```
