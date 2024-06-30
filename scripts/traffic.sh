@@ -13,24 +13,24 @@
 # export CUDA_VISIBLE_DEVICES=2
 
 seq_len=336
-model=TEMPO #TEMPO #PatchTST #_multi
+model=TEMPO #TEMPO #PatchTST 
 electri_multiplier=1
 traffic_multiplier=1
 
 
-for percent in 100 #5 10
+for percent in 100 
 do
-for pred_len in  336 720 #96 #720 #336 #192 #336 #720 #96 #720 #96 #96 #336 #192 #96 #336 96 # 96 192
+for pred_len in  336 720 
 do
 for tmax in 20
 do
-for lr in 0.001 #0.005 0.000005 
+for lr in 0.001 
 do
-for gpt_layer in 3 #6 #3 #6 #6 #3 #6 #0 
+for gpt_layer in 3 
 do
-for equal in 1 #0
+for equal in 1 
 do
-for prompt in 1 #0 #1 #0
+for prompt in 1 
 do
 mkdir -p logs/$model
 mkdir logs/$model/loar_revin_$percent'_'percent'_'$prompt'_'prompt'_'equal'_'$equal/

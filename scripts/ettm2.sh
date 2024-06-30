@@ -13,43 +13,30 @@
 # export CUDA_VISIBLE_DEVICES=2
 
 seq_len=336
-model=TEMPO #TEMPO #PatchTST #_multi
+model=TEMPO #TEMPO #PatchTST 
 electri_multiplier=1
 traffic_multiplier=1
 
 
-for percent in 100 #5 10
+for percent in 100 
 do
-for pred_len in  96 #720 #336 #192 #336 #720 #96 #720 #96 #96 #336 #192 #96 #336 96 # 96 192
+for pred_len in  96 
 do
 for tmax in 20
 do
-for lr in 0.001 #0.005 0.000005 
+for lr in 0.001 
 do
-for gpt_layer in 3 #6 #3 #6 #0 
+for gpt_layer in 3 
 do
-for equal in 1 #0
+for equal in 1 
 do
-for prompt in 1 #0 #1 #0
+for prompt in 1 
 do
 mkdir -p logs/$model
 mkdir logs/$model/loar_revin_$percent'_'percent'_'$prompt'_'prompt'_'equal'_'$equal/
 mkdir logs/$model/loar_revin_$percent'_'percent'_'$prompt'_'prompt'_'equal'_'$equal/ettm2_pmt1_no_pool_$model'_'$gpt_layer
 echo logs/$model/loar_revin_$percent'_'percent'_'$prompt'_'prompt'_'equal'_'$equal/ettm2_pmt1_no_pool_$model'_'$gpt_layer/test'_'$seq_len'_'$pred_len'_lr'$lr.log
 
-
-
- 
-   
-    # args.features = args.features_s
-    # args.freq = args.freq_s
-    # args.target = args.target_s
-    # args.embed = args.embed_s
-
-# PatchTST model position:
-#    --model_id h1h2m1weam2_$model'_'$gpt_layer'_'prompt_learn'_'$seq_len'_'$pred_len'_'$percent \
-
-#--model_id ettm2_pmt1_no_pool_$model'_'$gpt_layer'_'prompt_learn'_'$seq_len'_'$pred_len'_'$percent \
 
 # python main_multi_6domain_release.py \
 python test_multi_6domain_release.py \

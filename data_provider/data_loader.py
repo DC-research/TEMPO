@@ -142,7 +142,7 @@ class Dataset_ETT_hour(Dataset):
         # After we get data, we do the stl resolve
         col_date = df_raw.columns[:1]
         df_time = df_raw[col_date]
-        data_raw = pd.DataFrame.join(df_time, pd.DataFrame(data))
+        data_raw = pd.DataFrame.join(df_time, pd.DataFrame(data))[border1:border2]
         trend_stamp, seasonal_stamp, resid_stamp = self.stl_resolve(data_raw=data_raw, data_name=self.data_name)
         # end -dove
 
@@ -322,7 +322,7 @@ class Dataset_ETT_minute(Dataset):
         # After we get data, we do the stl resolve
         col_date = df_raw.columns[:1]
         df_time = df_raw[col_date]
-        data_raw = pd.DataFrame.join(df_time, pd.DataFrame(data))
+        data_raw = pd.DataFrame.join(df_time, pd.DataFrame(data))[border1:border2]
         trend_stamp, seasonal_stamp, resid_stamp = self.stl_resolve(data_raw=data_raw, data_name=self.data_name)
 
         self.data_x = data[border1:border2]
@@ -497,7 +497,7 @@ class Dataset_Custom(Dataset):
         # After we get data, we do the stl resolve
         col_date = df_raw.columns[:1]
         df_time = df_raw[col_date]
-        data_raw = pd.DataFrame.join(df_time, pd.DataFrame(data))
+        data_raw = pd.DataFrame.join(df_time, pd.DataFrame(data))[border1:border2]
         trend_stamp, seasonal_stamp, resid_stamp = self.stl_resolve(data_raw=data_raw)
         
         
@@ -550,7 +550,7 @@ class Dataset_Pred(Dataset):
     def __init__(self, root_path, flag='pred', size=None,
                  features='S', data_path='ETTh1.csv',
                  target='OT', scale=True, inverse=False, timeenc=0, freq='15min', cols=None,
-                 percent=None, train_all=False):
+                 percent=None, train_all=False, period = 24):
         # size [seq_len, label_len, pred_len]
         # info
         if size == None:
@@ -573,7 +573,69 @@ class Dataset_Pred(Dataset):
         self.cols = cols
         self.root_path = root_path
         self.data_path = data_path
+        self.period = period
         self.__read_data__()
+
+    def stl_resolve(self, data_raw, period = 24):
+        """
+        STL Global Decomposition
+        """
+        
+        save_stl = stl_position +  self.data_name   
+        # save_stl = 'stl/' + 'weather'   
+
+        self.save_stl = save_stl
+        trend_pk = self.save_stl + '/trend.pk'
+        seasonal_pk = self.save_stl + '/seasonal.pk'
+        resid_pk = self.save_stl + '/resid.pk'
+        if os.path.isfile(trend_pk) and os.path.isfile(seasonal_pk) and os.path.isfile(resid_pk):
+            with open(trend_pk, 'rb') as f:
+                trend_stamp = pickle.load(f)
+            with open(seasonal_pk, 'rb') as f:
+                seasonal_stamp = pickle.load(f)
+            with open(resid_pk, 'rb') as f:
+                resid_stamp = pickle.load(f)
+        else:
+            os.makedirs(self.save_stl, exist_ok=True)
+            data_raw['date'] = pd.to_datetime(data_raw['date'])
+            data_raw.set_index('date', inplace=True)
+
+            [n,m] = data_raw.shape
+
+            trend_stamp = torch.zeros([len(data_raw), m], dtype=torch.float32)
+            seasonal_stamp = torch.zeros([len(data_raw), m], dtype=torch.float32)
+            resid_stamp = torch.zeros([len(data_raw), m], dtype=torch.float32)
+
+            cols = data_raw.columns
+            for i, col in enumerate(cols):
+                df = data_raw[col]
+                # df = df.resample(self.args.freq).mean().ffill()
+                
+                
+                if 'weather' in self.data_name: # == 'weather':
+                    res = STL(df, period = 24*6).fit()
+                elif 'ill' in self.data_name:
+                    res = STL(df).fit() # 
+                elif 'etth1' in self.data_name or 'etth2' in self.data_name:
+                    res = STL(df, period = 24).fit()
+                elif 'ettm1' in self.data_name or 'ettm2' in self.data_name:
+                    res = STL(df, period = 24*4).fit()
+                elif 'traffic' in self.data_name  or 'electricity' in self.data_name:
+                    res = STL(df, period = 24).fit()
+                else:
+                    res = STL(df).fit(period = period)
+                
+                trend_stamp[:, i] = torch.tensor(np.array(res.trend.values), dtype=torch.float32)
+                seasonal_stamp[:, i] = torch.tensor(np.array(res.seasonal.values), dtype=torch.float32)
+                resid_stamp[:, i] = torch.tensor(np.array(res.resid.values), dtype=torch.float32)
+            with open(trend_pk, 'wb') as f:
+                pickle.dump(trend_stamp, f)
+            with open(seasonal_pk, 'wb') as f:
+                pickle.dump(seasonal_stamp, f)
+            with open(resid_pk, 'wb') as f:
+                pickle.dump(resid_stamp, f)
+        return trend_stamp, seasonal_stamp, resid_stamp
+
 
     def __read_data__(self):
         self.scaler = StandardScaler()
@@ -608,7 +670,12 @@ class Dataset_Pred(Dataset):
         tmp_stamp = df_raw[['date']][border1:border2]
         tmp_stamp['date'] = pd.to_datetime(tmp_stamp.date)
         pred_dates = pd.date_range(tmp_stamp.date.values[-1], periods=self.pred_len + 1, freq=self.freq)
-
+        
+        col_date = df_raw.columns[:1]
+        df_time = df_raw[col_date]
+        data_raw = pd.DataFrame.join(df_time, pd.DataFrame(data))[border1:border2]
+        trend_stamp, seasonal_stamp, resid_stamp = self.stl_resolve(data_raw=data_raw, period = self.period)
+        
         df_stamp = pd.DataFrame(columns=['date'])
         df_stamp.date = list(tmp_stamp.date.values) + list(pred_dates[1:])
         if self.timeenc == 0:
@@ -624,11 +691,15 @@ class Dataset_Pred(Dataset):
             data_stamp = data_stamp.transpose(1, 0)
 
         self.data_x = data[border1:border2]
+        self.trend_stamp = trend_stamp[border1:border2]
+        self.seasonal_stamp = seasonal_stamp[border1:border2]
+        self.resid_stamp = resid_stamp[border1:border2]
         if self.inverse:
             self.data_y = df_data.values[border1:border2]
         else:
             self.data_y = data[border1:border2]
         self.data_stamp = data_stamp
+
 
     def __getitem__(self, index):
         s_begin = index
@@ -643,8 +714,11 @@ class Dataset_Pred(Dataset):
             seq_y = self.data_y[r_begin:r_begin + self.label_len]
         seq_x_mark = self.data_stamp[s_begin:s_end]
         seq_y_mark = self.data_stamp[r_begin:r_end]
+        seq_trend = self.trend_stamp[s_begin:s_end]
+        seq_seasonal = self.seasonal_stamp[s_begin:s_end]
+        seq_resid = self.resid_stamp[s_begin:s_end]
 
-        return seq_x, seq_y, seq_x_mark, seq_y_mark
+        return seq_x, seq_y, seq_x_mark, seq_y_mark, seq_trend, seq_seasonal, seq_resid
 
     def __len__(self):
         return len(self.data_x) - self.seq_len + 1

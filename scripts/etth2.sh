@@ -18,19 +18,19 @@ electri_multiplier=1
 traffic_multiplier=1
 
 
-for percent in 100 #5 10
+for percent in 100 
 do
-for pred_len in  192 #96 #192 336 720 #96 #720 #336 #192 #336 #720 #96 #720 #96 #96 #336 #192 #96 #336 96 # 96 192
+for pred_len in  192 
 do
 for tmax in 20
 do
-for lr in 0.001 #0.005 0.000005 
+for lr in 0.001 
 do
-for gpt_layer in 6 #3 #6 #6 #3 #6 #0 
+for gpt_layer in 6 
 do
-for equal in 1 #0
+for equal in 1 
 do
-for prompt in 1 #0 #1 #0
+for prompt in 1 
 do
 mkdir -p logs/$model
 mkdir logs/$model/loar_revin_$percent'_'percent'_'$prompt'_'prompt'_'equal'_'$equal/
@@ -40,7 +40,7 @@ echo logs/$model/loar_revin_$percent'_'percent'_'$prompt'_'prompt'_'equal'_'$equ
 
 
 python main_multi_6domain_release.py \
-    --datasets ETTm1,ETTh2,ETTm2,electricity,traffic,weather \
+    --datasets ETTm1,ETTh1,ETTm2,electricity,traffic,weather \
     --target_data ETTh2 \
     --config_path ./configs/multiple_datasets.yml \
     --stl_weight 0.001 \

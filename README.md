@@ -1,12 +1,19 @@
-# TEMPO: Prompt-based Generative Pre-trained Transformer for Time Series Forecasting
+# Time Series Foundation Model
+
+## TEMPO: Prompt-based Generative Pre-trained Transformer for Time Series Forecasting
 
 The official code for "TEMPO: Prompt-based Generative Pre-trained Transformer for Time Series Forecasting (ICLR 2024)".
 
+TEMPO is one of the very first open source **Time Series Foundation Models** for forecasting task v1.0 version.
 
 <div align="center"><img src=./pics/TEMPO.png width=80% /></div>
 
 
-# Build the environment
+Please try our foundation model demo [[here]](https://4171a8a7484b3e9148.gradio.live).
+
+<div align="center"><img src=./pics/TEMPO_demo.jpg width=80% /></div>
+
+### Build the environment
 
 ```
 conda create -n tempo python=3.8
@@ -18,18 +25,18 @@ conda activate tempo
 pip install -r requirements.txt
 ```
 
-# Get Data
+### Get Data
 
    Download the data from [[Google Drive]](https://drive.google.com/drive/folders/13Cg1KYOlzM5C7K8gK8NfC-F3EYxkM3D2?usp=sharing) or [[Baidu Drive]](https://pan.baidu.com/s/1r3KhGd0Q9PJIUZdfEYoymg?pwd=i9iy), and place the downloaded data in the folder`./dataset`. You can also download the STL results from [[Google Drive]](https://drive.google.com/file/d/1gWliIGDDSi2itUAvYaRgACru18j753Kw/view?usp=sharing), and place the downloaded data in the folder`./stl`.
 
-# Run TEMPO
+### Run TEMPO
 
-## Training Stage
+### Training Stage
 ```
 bash [ecl, etth1, etth2, ettm1, ettm2, traffic, weather].sh
 ```
 
-## Test
+### Test
 
 After training, we can test TEMPO model under the zero-shot setting:
 
@@ -40,11 +47,11 @@ bash [ecl, etth1, etth2, ettm1, ettm2, traffic, weather]_test.sh
 <div align="center"><img src=./pics/results.jpg width=90% /></div>
 
 
-# Pre-trained Models
+## Pre-trained Models
 
 You can download the pre-trained model from [[Google Drive]](https://drive.google.com/file/d/11Ho_seP9NGh-lQCyBkvQhAQFy_3XVwKp/view?usp=drive_link) and then run the test script for fun.
 
-# TETS dataset
+## TETS dataset
 
 Here is the prompts use to generate the coresponding textual informaton of time series via [[OPENAI ChatGPT-3.5 API]](https://platform.openai.com/docs/guides/text-generation)
 
@@ -66,6 +73,7 @@ You can download the processed data with text embedding from GPT2 from: [[TETS]]
 ).
 
 
+Feel free to connect DefuCao@USC.EDU / YanLiu.CS@USC.EDU if you’re interested in applying TEMPO to your real-world application.
 
 ## Cite
 ```
@@ -77,4 +85,18 @@ booktitle={The Twelfth International Conference on Learning Representations},
 year={2024},
 url={https://openreview.net/forum?id=YH5w12OUuU}
 }
+```
+
+```
+@article{
+   Jia_Wang_Zheng_Cao_Liu_2024, 
+   title={GPT4MTS: Prompt-based Large Language Model for Multimodal Time-series Forecasting}, 
+   volume={38}, 
+   url={https://ojs.aaai.org/index.php/AAAI/article/view/30383}, 
+   DOI={10.1609/aaai.v38i21.30383}, 
+   number={21}, 
+   journal={Proceedings of the AAAI Conference on Artificial Intelligence}, 
+   author={Jia, Furong and Wang, Kevin and Zheng, Yixiang and Cao, Defu and Liu, Yan}, 
+   year={2024}, month={Mar.}, pages={23343-23351} 
+   }
 ```
