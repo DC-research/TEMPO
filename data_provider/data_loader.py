@@ -550,7 +550,7 @@ class Dataset_Pred(Dataset):
     def __init__(self, root_path, flag='pred', size=None,
                  features='S', data_path='ETTh1.csv',
                  target='OT', scale=True, inverse=False, timeenc=0, freq='15min', cols=None,
-                 percent=None, train_all=False, period = 24):
+                 percent=None, train_all=False, period = 24, max_len=-1, data_name = 'weather'):
         # size [seq_len, label_len, pred_len]
         # info
         if size == None:
@@ -574,6 +574,7 @@ class Dataset_Pred(Dataset):
         self.root_path = root_path
         self.data_path = data_path
         self.period = period
+        self.data_name  = data_name  
         self.__read_data__()
 
     def stl_resolve(self, data_raw, period = 24):
@@ -623,7 +624,7 @@ class Dataset_Pred(Dataset):
                 elif 'traffic' in self.data_name  or 'electricity' in self.data_name:
                     res = STL(df, period = 24).fit()
                 else:
-                    res = STL(df).fit(period = period)
+                    res = STL(df, period = period).fit()
                 
                 trend_stamp[:, i] = torch.tensor(np.array(res.trend.values), dtype=torch.float32)
                 seasonal_stamp[:, i] = torch.tensor(np.array(res.seasonal.values), dtype=torch.float32)
@@ -652,8 +653,8 @@ class Dataset_Pred(Dataset):
             cols.remove(self.target)
             cols.remove('date')
         df_raw = df_raw[['date'] + cols + [self.target]]
-        border1 = len(df_raw) - self.seq_len
-        border2 = len(df_raw)
+        border1 = 0 #len(df_raw) - self.seq_len
+        border2 = int(0.1*len(df_raw)) - self.seq_len + 1
 
         if self.features == 'M' or self.features == 'MS':
             cols_data = df_raw.columns[1:]
@@ -718,7 +719,7 @@ class Dataset_Pred(Dataset):
         seq_seasonal = self.seasonal_stamp[s_begin:s_end]
         seq_resid = self.resid_stamp[s_begin:s_end]
 
-        return seq_x, seq_y, seq_x_mark, seq_y_mark, seq_trend, seq_seasonal, seq_resid
+        return seq_x.reshape(-1, 1), seq_y.reshape(-1, 1), seq_x_mark, seq_y_mark, seq_trend.reshape(-1, 1), seq_seasonal.reshape(-1, 1), seq_resid.reshape(-1, 1)
 
     def __len__(self):
         return len(self.data_x) - self.seq_len + 1
