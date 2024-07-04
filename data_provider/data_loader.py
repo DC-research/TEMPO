@@ -142,7 +142,7 @@ class Dataset_ETT_hour(Dataset):
         # After we get data, we do the stl resolve
         col_date = df_raw.columns[:1]
         df_time = df_raw[col_date]
-        data_raw = pd.DataFrame.join(df_time, pd.DataFrame(data))[border1:border2]
+        data_raw = pd.DataFrame.join(df_time, pd.DataFrame(data))#[border1:border2]
         trend_stamp, seasonal_stamp, resid_stamp = self.stl_resolve(data_raw=data_raw, data_name=self.data_name)
         # end -dove
 
@@ -322,7 +322,7 @@ class Dataset_ETT_minute(Dataset):
         # After we get data, we do the stl resolve
         col_date = df_raw.columns[:1]
         df_time = df_raw[col_date]
-        data_raw = pd.DataFrame.join(df_time, pd.DataFrame(data))[border1:border2]
+        data_raw = pd.DataFrame.join(df_time, pd.DataFrame(data))#[border1:border2]
         trend_stamp, seasonal_stamp, resid_stamp = self.stl_resolve(data_raw=data_raw, data_name=self.data_name)
 
         self.data_x = data[border1:border2]
@@ -497,7 +497,7 @@ class Dataset_Custom(Dataset):
         # After we get data, we do the stl resolve
         col_date = df_raw.columns[:1]
         df_time = df_raw[col_date]
-        data_raw = pd.DataFrame.join(df_time, pd.DataFrame(data))[border1:border2]
+        data_raw = pd.DataFrame.join(df_time, pd.DataFrame(data))#[border1:border2]
         trend_stamp, seasonal_stamp, resid_stamp = self.stl_resolve(data_raw=data_raw)
         
         
@@ -674,7 +674,7 @@ class Dataset_Pred(Dataset):
         
         col_date = df_raw.columns[:1]
         df_time = df_raw[col_date]
-        data_raw = pd.DataFrame.join(df_time, pd.DataFrame(data))[border1:border2]
+        data_raw = pd.DataFrame.join(df_time, pd.DataFrame(data))#[border1:border2]
         trend_stamp, seasonal_stamp, resid_stamp = self.stl_resolve(data_raw=data_raw, period = self.period)
         
         df_stamp = pd.DataFrame(columns=['date'])

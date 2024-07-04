@@ -13,6 +13,9 @@ test_results/*
 */runs
 */results
 stl/
+stl*/
+*checkpoints*/
+*dataset*/
 stl/*
 *.npy
 Representation/checkpoints/*
