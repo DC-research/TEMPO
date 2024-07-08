@@ -1,6 +1,7 @@
-# Time Series Foundation Model
+# Time Series Foundation Model - TEMPO: Prompt-based Generative Pre-trained Transformer for Time Series Forecasting
 
-## TEMPO: Prompt-based Generative Pre-trained Transformer for Time Series Forecasting
+
+<div align="center"><img src=./pics/TEMPO_logo.png width=80% /></div>
 
 The official code for "TEMPO: Prompt-based Generative Pre-trained Transformer for Time Series Forecasting (ICLR 2024)".
 
@@ -8,10 +9,23 @@ TEMPO is one of the very first open source **Time Series Foundation Models** for
 
 <div align="center"><img src=./pics/TEMPO.png width=80% /></div>
 
+## Demos
+
+### 1. Reproducing zero-shot experiments on ETTh2:
+
+Please try to reproduc the zero-shot experiments on ETTh2 [[here on Colab]](https://colab.research.google.com/drive/11qGpT7H1JMaTlMlm9WtHFZ3_cJz7p-og?usp=sharing).
+
+### 2. Zero-shot experiments on customer dataset:
+
+We use the following Colab page to show the demo of building the customer dataset and directly do the inference via our pre-trained foundation model: [[Colab]](https://colab.research.google.com/drive/1ZpWbK0L6mq1pav2yDqOuORo4rHbv80-A?usp=sharing)
+
+### 3. Online demo:
 
 Please try our foundation model demo [[here]](https://4171a8a7484b3e9148.gradio.live).
 
 <div align="center"><img src=./pics/TEMPO_demo.jpg width=80% /></div>
+
+## Practice on your end
 
 ### Build the environment
 
@@ -31,12 +45,12 @@ pip install -r requirements.txt
 
 ### Run TEMPO
 
-### Training Stage
+### Pre-Training Stage
 ```
 bash [ecl, etth1, etth2, ettm1, ettm2, traffic, weather].sh
 ```
 
-### Test
+### Test/ Inference Stage
 
 After training, we can test TEMPO model under the zero-shot setting:
 
@@ -72,10 +86,10 @@ Example of generated contextual information for the Company marked above:
 You can download the processed data with text embedding from GPT2 from: [[TETS]](https://drive.google.com/file/d/1Hu2KFj0kp4kIIpjbss2ciLCV_KiBreoJ/view?usp=drive_link
 ).
 
-
+## Contact
 Feel free to connect DefuCao@USC.EDU / YanLiu.CS@USC.EDU if you’re interested in applying TEMPO to your real-world application.
 
-## Cite
+## Cite our work
 ```
 @inproceedings{
 cao2024tempo,
