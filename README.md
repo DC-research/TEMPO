@@ -27,6 +27,8 @@ Please try our foundation model demo [[here]](https://4171a8a7484b3e9148.gradio.
 
 ## Practice on your end
 
+We also updated our models on HuggingFace: [[Melady/TEMPO]](https://huggingface.co/Melady/TEMPO).
+
 ### Build the environment
 
 ```
