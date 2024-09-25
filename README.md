@@ -3,7 +3,7 @@
 
 <div align="center"><img src=./pics/TEMPO_logo.png width=80% /></div>
 
-The official code for "TEMPO: Prompt-based Generative Pre-trained Transformer for Time Series Forecasting (ICLR 2024)".
+The official code for [["TEMPO: Prompt-based Generative Pre-trained Transformer for Time Series Forecasting (ICLR 2024)"]](https://arxiv.org/pdf/2310.04948).
 
 TEMPO is one of the very first open source **Time Series Foundation Models** for forecasting task v1.0 version.
 
