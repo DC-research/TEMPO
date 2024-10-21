@@ -31,4 +31,6 @@ __MACOSX
 *.pk
 logs/*
 lora_revin_*
+results_results
+results_results/*
 

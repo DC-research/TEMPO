@@ -12,6 +12,30 @@ from utils.metrics import metric
 
 plt.switch_backend('agg')
 
+
+from huggingface_hub import hf_hub_download
+from io import StringIO
+
+def load_data_from_huggingface(repo_id, filename):
+    try:
+        # Download the file content directly into memory
+        file_content = hf_hub_download(
+            repo_id=repo_id,
+            filename=filename,
+            local_dir=None,  # This ensures the file is not saved locally
+            local_dir_use_symlinks=False
+        )
+        
+        # Read the content into a pandas DataFrame
+        with open(file_content, 'r') as f:
+            pems_bay = pd.read_csv(StringIO(f.read()))
+        
+        print("Data loaded successfully")
+        return pems_bay
+    except Exception as e:
+        print(f"Error loading data: {str(e)}")
+        return None
+
 def adjust_learning_rate(optimizer, epoch, args):
     # lr = args.learning_rate * (0.2 ** (epoch // 2))
     # if args.decay_fac is None:

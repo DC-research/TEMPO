@@ -11,7 +11,9 @@ from transformers.models.gpt2.configuration_gpt2 import GPT2Config
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from utils.rev_in import RevIn
 from peft import get_peft_config, PeftModel, PeftConfig, get_peft_model, LoraConfig, TaskType
-
+from huggingface_hub import hf_hub_download
+import os
+import warnings
 
 criterion = nn.MSELoss()
 
@@ -37,7 +39,8 @@ def print_trainable_parameters(model):
         if param.requires_grad:
             trainable_params += param.numel()
     print(
-        f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param:.2f}"
+        # f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param:.2f}"
+        f"trainable params: {trainable_params} || all params: {all_param}"
     )
 
 class MultiFourier(torch.nn.Module):
@@ -87,7 +90,7 @@ class TEMPO(nn.Module):
         self.stride = configs.stride
         self.patch_num = (configs.seq_len - self.patch_size) // self.stride + 1
         self.mul_season = MultiFourier([2], [24*4]) #, [ 24, 24*4])
-
+        self.seq_len = configs.seq_len
         self.padding_patch_layer = nn.ReplicationPad1d((0, self.stride)) 
         self.patch_num += 1
         # self.mlp = configs.mlp
@@ -234,7 +237,36 @@ class TEMPO(nn.Module):
         self.rev_in_season = RevIn(num_features=self.num_nodes).to(device)
         self.rev_in_noise = RevIn(num_features=self.num_nodes).to(device)
 
+    
+    @classmethod
+    def load_pretrained_model(
+        cls,
+        cfg,
+        device,
+        repo_id="Melady/TEMPO",
+        filename="etth2_336_96_checkpoint.pth",
+        cache_dir="./checkpoints/TEMPO_checkpoints"
+    ):
+        # Download the model checkpoint
+        checkpoint_path = hf_hub_download(
+            repo_id=repo_id,
+            filename=filename,
+            cache_dir=cache_dir
+        )
         
+        # Initialize the model
+        model = cls(cfg, device)
+        
+        # Construct the full path to the checkpoint
+        model_path = os.path.join(cfg.checkpoints, cfg.model_id)
+        best_model_path = model_path + '_checkpoint.pth'
+        print(f"Loading model from: {best_model_path}")
+        
+        # Load the state dict
+        state_dict = torch.load(checkpoint_path, map_location=device)
+        model.load_state_dict(state_dict, strict=False)
+        
+        return model
 
         
     def store_tensors_in_dict(self, original_x, original_trend, original_season, original_noise, trend_prompts, season_prompts, noise_prompts):
@@ -371,7 +403,7 @@ class TEMPO(nn.Module):
                 return x
 
 
-    def forward(self, x, itr, trend, season, noise, test=False):
+    def forward(self, x, itr=0, trend=None, season=None, noise=None, test=False):
         B, L, M = x.shape # 4, 512, 1
 
        
@@ -379,19 +411,27 @@ class TEMPO(nn.Module):
 
         original_x = x
         
+        # Moving average for trend
         trend_local = self.moving_avg(x)
-        trend_local = self.map_trend(trend_local.squeeze()).unsqueeze(2)
-        season_local = x - trend_local
-        # print(season_local.squeeze().shape)
-        season_local = self.map_season(season_local.squeeze().unsqueeze(1)).squeeze(1).unsqueeze(2)
-        noise_local = x - trend_local - season_local
-
         
-        trend, means_trend, stdev_trend = self.get_norm(trend)
-        season, means_season, stdev_season = self.get_norm(season)
-        noise, means_noise, stdev_noise = self.get_norm(noise)
+        # Map trend
+        trend_local = self.map_trend(trend_local.squeeze(2)).unsqueeze(2)
+        
+        # Calculate season
+        season_local = x - trend_local
+        
+        # Map season
+        season_local = self.map_season(season_local.squeeze(2)).unsqueeze(2)
+        
+        # Calculate noise
+        noise_local = x - trend_local - season_local
+        
+        
 
         if trend is not None:
+            trend, means_trend, stdev_trend = self.get_norm(trend)
+            season, means_season, stdev_season = self.get_norm(season)
+            noise, means_noise, stdev_noise = self.get_norm(noise)
             trend_local_l = criterion(trend, trend_local)
             season_local_l = criterion(season, season_local)
             noise_local_l = criterion(noise, noise_local)
@@ -478,4 +518,52 @@ class TEMPO(nn.Module):
         outputs = self.rev_in_trend(outputs, 'denorm')
         # if self.pool:
         #     return outputs, loss_local #loss_local - reduce_sim_trend - reduce_sim_season - reduce_sim_noise
+        if test:
+            return outputs, None
         return outputs, loss_local
+    
+
+    def predict(self, x):
+        """
+        Predict using the TEMPO model.
+        
+        Args:
+        - x: Input time series data (shape: [B, L, M])
+        
+        Returns:
+        - Predicted output
+        """
+        self.eval()  # Set the model to evaluation mode
+
+        x = torch.FloatTensor(x).unsqueeze(0).unsqueeze(2)  # Shape: [1, 336, 1]
+        
+        B, L, M = x.shape
+        target_length = self.seq_len  # Maximum supported length
+        
+        if L > target_length:
+            warnings.warn(f"Input length {L} is larger than the maximum supported length of {target_length}. "
+                          f"This may influence performance. Cutting the input to the last {target_length} time steps.")
+            x = x[:, -target_length:, :]
+        elif L < target_length:
+            pad_length = target_length - L
+            if pad_length <= L:
+                # Pad by repeating the time series
+                x_padded = torch.cat([x] * (target_length // L + 1), dim=1)[:, :target_length, :]
+            else:
+                # Pad with zeros at the beginning
+                padding = torch.zeros(B, pad_length, M, device=x.device)
+                x_padded = torch.cat([padding, x], dim=1)
+            
+            x = x_padded
+            warnings.warn(f"Input length {L} is smaller than the required length of {target_length}. "
+                          f"The time series has been {'repeated' if pad_length <= L else 'zero-padded'} to reach the required length.")
+        
+        # Ensure x is on the same device as the model
+        x = x.to(next(self.parameters()).device)
+        
+        
+        
+        with torch.no_grad():
+            outputs, _ = self.forward(x, test=True)
+        
+        return outputs
