@@ -14,6 +14,7 @@ from peft import get_peft_config, PeftModel, PeftConfig, get_peft_model, LoraCon
 from huggingface_hub import hf_hub_download
 import os
 import warnings
+from omegaconf import OmegaConf
 
 criterion = nn.MSELoss()
 
@@ -94,6 +95,7 @@ class TEMPO(nn.Module):
         self.padding_patch_layer = nn.ReplicationPad1d((0, self.stride)) 
         self.patch_num += 1
         # self.mlp = configs.mlp
+        self.device = device
 
         self.map_trend = nn.Linear(configs.seq_len, configs.seq_len)
         self.map_season  = nn.Sequential(
@@ -115,10 +117,10 @@ class TEMPO(nn.Module):
                 # self.gpt2_season = GPT2Model.from_pretrained('gpt2', output_attentions=True, output_hidden_states=True)  # loads a pretrained GPT-2 base model
                 # self.gpt2_noise = GPT2Model.from_pretrained('gpt2', output_attentions=True, output_hidden_states=True)  # loads a pretrained GPT-2 base model
             else:
-                print("------------------no pretrain------------------")
+                print("------------------No need to load pretrained GPT model------------------")
                 self.gpt2_trend = GPT2Model(GPT2Config())
-                self.gpt2_season = GPT2Model(GPT2Config())
-                self.gpt2_noise = GPT2Model(GPT2Config())
+                # self.gpt2_season = GPT2Model(GPT2Config())
+                # self.gpt2_noise = GPT2Model(GPT2Config())
             self.gpt2_trend.h = self.gpt2_trend.h[:configs.gpt_layers]
            
             self.prompt = configs.prompt
@@ -241,10 +243,10 @@ class TEMPO(nn.Module):
     @classmethod
     def load_pretrained_model(
         cls,
-        cfg,
         device,
+        cfg = None,
         repo_id="Melady/TEMPO",
-        filename="etth2_336_96_checkpoint.pth",
+        filename="TEMPO-80M_v1.pth",
         cache_dir="./checkpoints/TEMPO_checkpoints"
     ):
         # Download the model checkpoint
@@ -253,6 +255,19 @@ class TEMPO(nn.Module):
             filename=filename,
             cache_dir=cache_dir
         )
+
+        # Download the config.json file
+        config_path = hf_hub_download(
+            repo_id=repo_id,
+            filename="config.json",
+            cache_dir=cache_dir
+        )
+
+        
+        # Load the configuration file
+        if cfg is None:
+            cfg = OmegaConf.load(config_path)
+
         
         # Initialize the model
         model = cls(cfg, device)
@@ -523,7 +538,7 @@ class TEMPO(nn.Module):
         return outputs, loss_local
     
 
-    def predict(self, x):
+    def predict(self, x, pred_length=96):
         """
         Predict using the TEMPO model.
         
@@ -559,11 +574,35 @@ class TEMPO(nn.Module):
                           f"The time series has been {'repeated' if pad_length <= L else 'zero-padded'} to reach the required length.")
         
         # Ensure x is on the same device as the model
-        x = x.to(next(self.parameters()).device)
+        x = x.to(self.device)
         
         
         
+        # with torch.no_grad():
+        #     outputs, _ = self.forward(x, test=True)        
+        # # Extract the predicted values
+        # predicted_values = outputs.squeeze().numpy()[-pred_length:]
+        # return predicted_values
+
         with torch.no_grad():
-            outputs, _ = self.forward(x, test=True)
+            current_input = x.clone()
+            all_predictions = []
+            
+            while len(all_predictions) < pred_length:
+                # Forward pass
+                outputs, _ = self.forward(current_input, test=True)
+                step_size = outputs.shape[1]
+                # Extract the predicted values
+                predicted_values = outputs.cpu().squeeze().numpy()[-step_size:]
+                
+                # Append to all predictions
+                all_predictions.extend(predicted_values)
+                
+                # Update the input for the next iteration
+                new_sequence = np.concatenate([current_input.cpu().squeeze().numpy()[step_size:], predicted_values])
+                current_input = torch.FloatTensor(new_sequence).unsqueeze(0).unsqueeze(2)
+    
+        # Trim to the desired length
+        return np.array(all_predictions[:pred_length])
+            
         
-        return outputs

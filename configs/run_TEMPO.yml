@@ -1,5 +1,5 @@
 description: TEMPO
-model_id: TEMPO_checkpoints/etth2_336_96
+model_id: TEMPO_checkpoints/TEMPO-80M_v1
 checkpoints: ./checkpoints/
 task_name: long_term_forecast
 prompt: 1
@@ -26,7 +26,7 @@ c_out: 1
 patch_size: 16
 kernel_size: 25
 loss_func: mse
-pretrain: 1
+pretrain: 0
 freeze: 1
 model: TEMPO
 stride: 8

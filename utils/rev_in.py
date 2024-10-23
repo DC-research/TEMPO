@@ -22,7 +22,6 @@ class RevIn(nn.Module):
         self.eps = eps
         self.affine = affine
         self.subtract_last = subtract_last
-
         if self.affine:
             self._init_params()
 

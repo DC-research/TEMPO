@@ -88,7 +88,7 @@ config = {
     "patch_size": 16,
     "kernel_size": 25,
     "loss_func": "mse",
-    "pretrain": 1,
+    "pretrain": 0,
     "freeze": 1,
     "model": "TEMPO",
     "stride": 8,
@@ -128,8 +128,14 @@ else:
 # if CPU is used, the device is set to 'cpu', otherwise, the device is set to 'cuda:0'
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-model = TEMPO.load_pretrained_model(cfg, device)
-
+model = TEMPO.load_pretrained_model(
+        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'),
+        repo_id = "Melady/TEMPO",
+        filename = "TEMPO-80M_v1.pth",
+        cache_dir = "./checkpoints/TEMPO_checkpoints"  
+)
+# with torch.no_grad():
+#         predicted_values = model.predict(input_data, pred_length)
 print("Successfully loaded the model")
 
 
@@ -152,10 +158,9 @@ def prepare_data_and_predict(model, df, seq_length=336, pred_length=96, total_le
     
     # Get prediction
     with torch.no_grad():
-        prediction = model.predict(input_data)
+        predicted_values = model.predict(input_data, pred_length)
     
-    # Extract the predicted values (last 96 values)
-    predicted_values = prediction.squeeze().numpy()[-pred_length:]
+    
     
     return input_data, predicted_values, data[seq_length:], selected_column, start_idx
 
@@ -184,7 +189,7 @@ def plot_results(input_data, predicted_values, actual_values, column_name, start
 
     # Prepare data and get prediction
 for i in range(10):
-    input_data, predicted_values, actual_values, selected_column, start_idx = prepare_data_and_predict(model, pems_bay)
+    input_data, predicted_values, actual_values, selected_column, start_idx = prepare_data_and_predict(model, pems_bay, pred_length = 112)
 
     # Plot the results
     plot_results(input_data, predicted_values, actual_values, selected_column, start_idx)
@@ -192,5 +197,5 @@ for i in range(10):
     # Print some statistics
     print(f"Selected Column: {selected_column}")
     print(f"Start Index: {start_idx}")
-    print(f"Mean Absolute Error: {np.mean(np.abs(predicted_values - actual_values))}")
-    print(f"Root Mean Squared Error: {np.sqrt(np.mean((predicted_values - actual_values)**2))}")
+    # print(f"Mean Absolute Error: {np.mean(np.abs(predicted_values - actual_values))}")
+    # print(f"Root Mean Squared Error: {np.sqrt(np.mean((predicted_values - actual_values)**2))}")
