@@ -1,5 +1,9 @@
 # Time Series Foundation Model - TEMPO: Prompt-based Generative Pre-trained Transformer for Time Series Forecasting
 
+[![preprint](https://img.shields.io/static/v1?label=arXiv&message=2310.04948&color=B31B1B&logo=arXiv)](https://arxiv.org/pdf/2310.04948)
+[![huggingface](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-FFD21E)](https://huggingface.co/Melady/TEMPO)
+[![License: MIT](https://img.shields.io/badge/License-Apache--2.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
+</div>
 
 <div align="center"><img src=./pics/TEMPO_logo.png width=80% /></div>
 
@@ -8,6 +12,64 @@ The official code for [["TEMPO: Prompt-based Generative Pre-trained Transformer 
 TEMPO is one of the very first open source **Time Series Foundation Models** for forecasting task v1.0 version.
 
 <div align="center"><img src=./pics/TEMPO.png width=80% /></div>
+
+
+## 🚀 News
+
+
+- **Oct 2024**: 🚀 We've streamlined our code structure, enabling users to download the pre-trained model and perform zero-shot inference with a single line of code! Check out our [demo](./run_TEMPO_demo.py) for more details. Our model's download count on HuggingFace is now trackable!
+
+- **Jun 2024**: 🚀 We added demos for reproducing zero-shot experiments in [Colab](https://colab.research.google.com/drive/11qGpT7H1JMaTlMlm9WtHFZ3_cJz7p-og?usp=sharing).  We also added the demo of building the customer dataset and directly do the inference via our pre-trained foundation model: [Colab](https://colab.research.google.com/drive/1ZpWbK0L6mq1pav2yDqOuORo4rHbv80-A?usp=sharing)
+- **May 2024**: 🚀 TEMPO has launched a GUI-based online [demo](https://4171a8a7484b3e9148.gradio.live/), allowing users to directly interact with our foundation model!
+- **May 2024**: 🚀 TEMPO published the 80M pretrained foundation model in [HuggingFace](https://huggingface.co/Melady/TEMPO)!
+- **May 2024**: 🧪 We added the code for pretraining and inference TEMPO models.  You can find a pre-training script demo in [this folder](./scripts/etth2.sh). We also added [a script](./scripts/etth2_test.sh) for the inference demo.
+
+- **Mar 2024**: 📈  Released [TETS dataset](https://drive.google.com/file/d/1Hu2KFj0kp4kIIpjbss2ciLCV_KiBreoJ/view?usp=drive_link) from [S&P 500](https://www.spglobal.com/spdji/en/indices/equity/sp-500/#overview) used in multimodal experiments in TEMPO. 
+- **Mar 2024**: 🧪 TEMPO published the project [code](https://github.com/DC-research/TEMPO) and the pre-trained checkpoint [online](https://drive.google.com/file/d/11Ho_seP9NGh-lQCyBkvQhAQFy_3XVwKp/view?usp=drive_link)! 
+- **Jan 2024**: 🚀 TEMPO [paper](https://openreview.net/pdf?id=YH5w12OUuU) get accepted by ICLR!
+- **Oct 2023**: 🚀 TEMPO [paper](https://arxiv.org/pdf/2310.04948) released on Arxiv!
+
+## Build the environment
+
+```
+conda create -n tempo python=3.8
+```
+```
+conda activate tempo
+```
+```
+pip install -r requirements.txt
+```
+
+## Script Demo
+
+A streamlining example showing how to perform forecasting using TEMPO:
+
+```python
+# Third-party library imports
+import numpy as np
+import torch
+from numpy.random import choice
+# Local imports
+from models.TEMPO import TEMPO
+from utils.tools import load_data_from_huggingface
+
+
+
+model = TEMPO.load_pretrained_model(
+        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'),
+        repo_id = "Melady/TEMPO",
+        filename = "TEMPO-80M_v1.pth",
+        cache_dir = "./checkpoints/TEMPO_checkpoints"  
+)
+
+input_data = np.random.rand(336)    # Random input data
+with torch.no_grad():
+        predicted_values = model.predict(input_data, pred_length=96)
+print("Predicted values:")
+print(predicted_values)
+
+```
 
 ## Demos
 
@@ -29,17 +91,7 @@ Please try our foundation model demo [[here]](https://4171a8a7484b3e9148.gradio.
 
 We also updated our models on HuggingFace: [[Melady/TEMPO]](https://huggingface.co/Melady/TEMPO).
 
-### Build the environment
 
-```
-conda create -n tempo python=3.8
-```
-```
-conda activate tempo
-```
-```
-pip install -r requirements.txt
-```
 
 ### Get Data
 
