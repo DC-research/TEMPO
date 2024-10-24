@@ -52,8 +52,6 @@ import torch
 from numpy.random import choice
 # Local imports
 from models.TEMPO import TEMPO
-from utils.tools import load_data_from_huggingface
-
 
 
 model = TEMPO.load_pretrained_model(
