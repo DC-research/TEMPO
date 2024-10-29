@@ -575,6 +575,7 @@ class TEMPO(nn.Module):
         
         # Ensure x is on the same device as the model
         x = x.to(self.device)
+        x = self.rev_in_trend(x, 'norm')
         
         
         
@@ -591,6 +592,7 @@ class TEMPO(nn.Module):
             while len(all_predictions) < pred_length:
                 # Forward pass
                 outputs, _ = self.forward(current_input, test=True)
+                outputs = self.rev_in_trend(outputs, 'denorm')
                 step_size = outputs.shape[1]
                 # Extract the predicted values
                 predicted_values = outputs.cpu().squeeze().numpy()[-step_size:]
@@ -601,7 +603,6 @@ class TEMPO(nn.Module):
                 # Update the input for the next iteration
                 new_sequence = np.concatenate([current_input.cpu().squeeze().numpy()[step_size:], predicted_values])
                 current_input = torch.FloatTensor(new_sequence).unsqueeze(0).unsqueeze(2)
-    
         # Trim to the desired length
         return np.array(all_predictions[:pred_length])
             
