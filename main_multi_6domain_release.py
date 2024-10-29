@@ -40,7 +40,115 @@ random.seed(fix_seed)
 torch.manual_seed(fix_seed)
 np.random.seed(fix_seed)
 
-parser = argparse.ArgumentParser(description='GPT4TS')
+def print_dataset_info(data, loader, name="Dataset"):
+    print(f"\n=== {name} Information ===")
+    print(f"Number of samples: {len(data)}")
+    print(f"Batch size: {loader.batch_size}")
+    print(f"Number of batches: {len(loader)}")
+    
+    
+    for attr in ['features', 'targets', 'shape']:
+        if hasattr(data, attr):
+            print(f"{attr}: {getattr(data, attr)}")
+    
+
+    # for batch in loader:
+    #     if isinstance(batch, (tuple, list)):
+    #         print("\nFirst batch shapes:")
+    #         for i, item in enumerate(batch):
+    #             print(f"Item {i} shape: {item.shape if hasattr(item, 'shape') else 'N/A'}")
+    #     else:
+    #         print(f"\nFirst batch shape: {batch.shape if hasattr(batch, 'shape') else 'N/A'}")
+    #     break
+
+def prepare_data_loaders(args, config):
+    """
+    Prepare train, validation and test data loaders.
+    
+    Args:
+        args: Arguments containing dataset configurations
+        config: Configuration dictionary
+    
+    Returns:
+        tuple: (train_data, train_loader, test_data, test_loader, val_data, val_loader)
+    """
+    
+    train_datas = []
+    val_datas = []
+    min_sample_num = sys.maxsize
+    
+    # First pass to get validation data and minimum sample number
+    for dataset_name in args.datasets.split(','):
+        _update_args_from_config(args, config, dataset_name)
+        
+        train_data, train_loader = data_provider(args, 'train')
+        if dataset_name not in ['ETTh1', 'ETTh2', 'ILI', 'exchange']:
+            min_sample_num = min(min_sample_num, len(train_data))
+    
+    for dataset_name in args.eval_data.split(','):  
+        _update_args_from_config(args, config, dataset_name)  
+        val_data, val_loader = data_provider(args, 'val') 
+        val_datas.append(val_data)
+
+    # Second pass to prepare training data with proper sampling
+    for dataset_name in args.datasets.split(','):
+        _update_args_from_config(args, config, dataset_name)
+        
+        train_data, _ = data_provider(args, 'train')
+        
+        if dataset_name not in ['ETTh1', 'ETTh2', 'ILI', 'exchange'] and args.equal == 1:
+            train_data = Subset(train_data, choice(len(train_data), min_sample_num))
+            
+        if args.equal == 1:
+            if dataset_name == 'electricity' and args.electri_multiplier > 1:
+                train_data = Subset(train_data, choice(len(train_data), 
+                                  int(min_sample_num * args.electri_multiplier)))
+            elif dataset_name == 'traffic' and args.traffic_multiplier > 1:
+                train_data = Subset(train_data, choice(len(train_data),
+                                  int(min_sample_num * args.traffic_multiplier)))
+                
+        train_datas.append(train_data)
+
+    # Combine datasets if multiple exist
+    if len(train_datas) > 1:
+        train_data = _combine_datasets(train_datas)
+        val_data = _combine_datasets(val_datas)
+        
+        train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size, 
+                                shuffle=True, num_workers=args.num_workers)
+        val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batch_size,
+                              shuffle=False, num_workers=args.num_workers)
+    
+    # Prepare test data
+    _update_args_from_config(args, config, args.target_data)
+    test_data, test_loader = data_provider(args, 'test')
+
+    print_dataset_info(train_data, train_loader, "Training Dataset")
+    print_dataset_info(val_data, val_loader, "Validation Dataset")
+    print_dataset_info(test_data, test_loader, "Test Dataset")
+    
+    return train_data, train_loader, test_data, test_loader, val_data, val_loader
+
+def _update_args_from_config(args, config, dataset_name):
+    """Update args with dataset specific configurations"""
+    dataset_config = config['datasets'][dataset_name]
+    for key in ['data', 'root_path', 'data_path', 'data_name', 'features',
+                'freq', 'target', 'embed', 'percent', 'lradj']:
+        setattr(args, key, getattr(dataset_config, key))
+    
+    if args.freq == 0:
+        args.freq = 'h'
+
+def _combine_datasets(datasets):
+    """Combine multiple datasets into one"""
+    combined = datasets[0]
+    for dataset in datasets[1:]:
+        combined = torch.utils.data.ConcatDataset([combined, dataset])
+    return combined
+
+
+
+parser = argparse.ArgumentParser(description='TEMPO')
 
 parser.add_argument('--model_id', type=str, default='weather_GTP4TS_multi-debug')
 parser.add_argument('--checkpoints', type=str, default='/l/users/defu.cao/checkpoints_multi_dataset/')
@@ -140,95 +248,9 @@ for ii in range(args.itr):
     device = torch.device('cuda:0')
 
 
-    
-    train_data_name = args.datasets.split(',')
-    print(train_data_name)
-    train_datas = []
-    val_datas = []
-    min_sample_num = sys.maxsize
-    for dataset_singe in args.datasets.split(','):
-        print(dataset_singe)
-        args.data = config['datasets'][dataset_singe].data
-        args.root_path = config['datasets'][dataset_singe].root_path
-        args.data_path = config['datasets'][dataset_singe].data_path
-        args.data_name = config['datasets'][dataset_singe].data_name
-        args.features = config['datasets'][dataset_singe].features
-        args.freq = config['datasets'][dataset_singe].freq
-        args.target = config['datasets'][dataset_singe].target
-        args.embed = config['datasets'][dataset_singe].embed
-        args.percent = config['datasets'][dataset_singe].percent
-        args.lradj = config['datasets'][dataset_singe].lradj
-        if args.freq == 0:
-            args.freq = 'h'
-       
-        print("dataset: ", args.data)
-        train_data, train_loader = data_provider(args, 'train')
-        if dataset_singe not in ['ETTh1', 'ETTh2', 'ILI', 'exchange']:   
-            min_sample_num = min(min_sample_num, len(train_data))
-        
-        # args.percent = 20
-        vali_data, vali_loader = data_provider(args, 'val')
-        # args.percent = 100
+    # Load the data
+    train_data, train_loader, test_data, test_loader, vali_data, vali_loader = prepare_data_loaders(args, config)
 
-        # train_datas.append(train_data)
-        val_datas.append(vali_data)
-
-    for dataset_singe in args.datasets.split(','):
-        print(dataset_singe)
-        args.data = config['datasets'][dataset_singe].data
-        args.root_path = config['datasets'][dataset_singe].root_path
-        args.data_path = config['datasets'][dataset_singe].data_path
-        args.data_name = config['datasets'][dataset_singe].data_name
-        args.features = config['datasets'][dataset_singe].features
-        args.freq = config['datasets'][dataset_singe].freq
-        args.target = config['datasets'][dataset_singe].target
-        args.embed = config['datasets'][dataset_singe].embed
-        args.percent = config['datasets'][dataset_singe].percent
-        args.lradj = config['datasets'][dataset_singe].lradj
-        if args.freq == 0:
-            args.freq = 'h'
-        # if args.freq != 'h':
-        #     args.freq = SEASONALITY_MAP[test_data.freq]
-        #     print("freq = {}".format(args.freq))
-
-        print("dataset: ", args.data)
-        train_data, train_loader = data_provider(args, 'train')
-        if dataset_singe not in ['ETTh1', 'ETTh2', 'ILI', 'exchange'] and args.equal == 1: 
-            train_data = Subset(train_data, choice(len(train_data), min_sample_num))
-        if args.electri_multiplier>1 and args.equal == 1 and dataset_singe in ['electricity']: 
-            train_data = Subset(train_data, choice(len(train_data), int(min_sample_num*args.electri_multiplier)))
-        if args.traffic_multiplier>1 and args.equal == 1 and dataset_singe in ['traffic']: 
-            train_data = Subset(train_data, choice(len(train_data), int(min_sample_num*args.traffic_multiplier)))
-        train_datas.append(train_data)
-
-    if len(train_datas) > 1:
-        train_data = torch.utils.data.ConcatDataset([train_datas[0], train_datas[1]])
-        vali_data = torch.utils.data.ConcatDataset([val_datas[0], val_datas[1]])
-        for i in range(2,len(train_datas)):
-            train_data = torch.utils.data.ConcatDataset([train_data, train_datas[i]])
-            
-            vali_data = torch.utils.data.ConcatDataset([vali_data, val_datas[i]])
-
-        # import pdb; pdb.set_trace()
-        print("Way1",len(train_data))
-        
-        train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-        vali_loader = torch.utils.data.DataLoader(vali_data, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
-
-
-        args.data = config['datasets'][args.target_data].data
-        args.root_path = config['datasets'][args.target_data].root_path
-        args.data_path = config['datasets'][args.target_data].data_path
-        args.data_name = config['datasets'][args.target_data].data_name
-        args.features = config['datasets'][dataset_singe].features
-        args.freq = config['datasets'][args.target_data].freq
-        args.target = config['datasets'][args.target_data].target
-        args.embed = config['datasets'][args.target_data].embed
-        args.percent = config['datasets'][args.target_data].percent
-        args.lradj = config['datasets'][args.target_data].lradj
-        if args.freq == 0:
-            args.freq = 'h'
-        test_data, test_loader = data_provider(args, 'test')
 
     time_now = time.time()
     train_steps = len(train_loader) #190470 -52696
