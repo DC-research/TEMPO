@@ -98,3 +98,14 @@ datasets:
     embed: timeF
     freq: 0
     percent: 100
+  monash:
+    root_path: ./datasets/Chronos_small/
+    data_path: monash.csv
+    data_name: monash
+    data: monash
+    lradj: type4
+    features: M
+    target: OT
+    embed: timeF
+    freq: 0
+    percent: 100

@@ -16,6 +16,120 @@ warnings.filterwarnings('ignore')
 
 stl_position = 'stl/'
 
+class Dataset_Monash(Dataset):
+    def __init__(self, root_path, flag='train', size=None,
+                 features='S', data_path='ETTh1.csv',
+                 target='OT', scale=True, timeenc=0, freq='h', 
+                 percent=100, data_name = 'etth2', max_len=-1, train_all=False):
+        # size [seq_len, label_len, pred_len]
+        # info
+        if size == None:
+            self.seq_len = 24 * 4 * 4
+            self.label_len = 24 * 4
+            self.pred_len = 24 * 4
+        else:
+            self.seq_len = size[0]
+            self.label_len = size[1]
+            self.pred_len = size[2]
+        # init
+        assert flag in ['train', 'test', 'val']
+        type_map = {'train': 0, 'val': 1, 'test': 2}
+        self.set_type = type_map[flag]
+
+        self.percent = percent
+        self.features = features
+        self.target = target
+        self.scale = scale
+        self.timeenc = timeenc
+        self.freq = freq
+
+        self.root_path = root_path
+        self.data_path = data_path
+        self.data_name = data_name
+        self.__read_data__()
+
+       
+
+
+    def __read_data__(self):
+        self.scaler = StandardScaler()
+        files = os.listdir(self.root_path)
+        # import pdb; pdb.set_trace()
+        # try:
+        #     # with open(os.path.join(self.root_path, 'all_datasets_windows.pkl'), 'rb') as f:
+        #     #     all_datasets = pickle.load(f)
+        # except:
+        all_datasets = {}
+        files_with_path = [os.path.join(self.root_path, f) for f in files]
+        for file_path in files_with_path:  # 改变变量名避免混淆
+            if 'windows' not in file_path:
+                continue
+            if 'all_datasets' not in file_path:
+                key = file_path.split('/')[-1].split('_window')[0]
+                with open(file_path, 'rb') as f:  # 这里使用新的变量f
+                    dataset = pickle.load(f)
+                # print(key)
+                # import pdb; pdb.set_trace()
+                all_datasets[key] = dataset
+        
+        self.all_datasets_list = []
+        for key in all_datasets:
+            # import pdb; pdb.set_trace()
+            lists_Data = list(all_datasets[key].values())
+            inner_data = sum(lists_Data, [])
+            self.all_datasets_list.extend(list(inner_data))
+        # self.all_datasets_list = sum([list(all_datasets[key].values()) for key in all_datasets], [])
+
+        print(len(self.all_datasets_list))
+        # import pdb; pdb.set_trace()
+
+        
+
+        # if self.timeenc == 0:
+        #     df_stamp['month'] = df_stamp.date.apply(lambda row: row.month, 1)
+        #     df_stamp['day'] = df_stamp.date.apply(lambda row: row.day, 1)
+        #     df_stamp['weekday'] = df_stamp.date.apply(lambda row: row.weekday(), 1)
+        #     df_stamp['hour'] = df_stamp.date.apply(lambda row: row.hour, 1)
+        #     data_stamp = df_stamp.drop(['date'], 1).values
+        # elif self.timeenc == 1:
+        #     data_stamp = time_features(pd.to_datetime(df_stamp['date'].values), freq=self.freq)
+        #     data_stamp = data_stamp.transpose(1, 0)
+
+        # self.data_x = data[border1:border2]
+        # self.data_y = data[border1:border2]
+        # self.data_stamp = data_stamp
+
+        # self.trend_stamp = trend_stamp[border1:border2]
+        # self.seasonal_stamp = seasonal_stamp[border1:border2]
+        # self.resid_stamp = resid_stamp[border1:border2]
+
+    def __getitem__(self, index):
+        
+        seq_x = self.all_datasets_list[index]['x']['target']
+        seq_y = self.all_datasets_list[index]['y']['target']
+        seq_x_mark = np.zeros_like(seq_x).reshape(-1, 1)
+        seq_y_mark = np.zeros_like(seq_y).reshape(-1, 1)
+        seq_trend = self.all_datasets_list[index]['x_trend']
+        seq_seasonal = self.all_datasets_list[index]['x_seasonal']
+        seq_resid = self.all_datasets_list[index]['x_resid']
+
+        return np.expand_dims(seq_x, axis=-1), \
+        np.expand_dims(seq_y, axis=-1), \
+        np.repeat(seq_x_mark, 4, axis=1),\
+        np.repeat(seq_y_mark, 4, axis=1), \
+        torch.tensor(np.expand_dims(seq_trend, axis=-1)), \
+        torch.tensor(np.expand_dims(seq_seasonal, axis=-1)), \
+        torch.tensor(np.expand_dims(seq_resid, axis=-1))
+    #     seq_x, seq_y, seq_x_mark, seq_y_mark, seq_trend, seq_seasonal, seq_resid
+    # , seq_y, seq_x_mark, seq_y_mark, seq_trend, seq_seasonal, seq_resid
+
+    def __len__(self):
+        return len(self.all_datasets_list)-1
+    
+    def inverse_transform(self, data):
+        return self.scaler.inverse_transform(data)
+
+
 class Dataset_ETT_hour(Dataset):
     def __init__(self, root_path, flag='train', size=None,
                  features='S', data_path='ETTh1.csv',
@@ -49,8 +163,8 @@ class Dataset_ETT_hour(Dataset):
         self.__read_data__()
 
         self.enc_in = self.data_x.shape[-1]
-        print("self.enc_in = {}".format(self.enc_in))
-        print("self.data_x = {}".format(self.data_x.shape))
+        # print("self.enc_in = {}".format(self.enc_in))
+        # print("self.data_x = {}".format(self.data_x.shape))
         self.tot_len = len(self.data_x) - self.seq_len - self.pred_len + 1
         
        
