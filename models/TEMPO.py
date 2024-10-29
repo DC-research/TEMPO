@@ -550,7 +550,8 @@ class TEMPO(nn.Module):
         """
         self.eval()  # Set the model to evaluation mode
 
-        x = torch.FloatTensor(x).unsqueeze(0).unsqueeze(2)  # Shape: [1, 336, 1]
+        x = torch.FloatTensor(x).unsqueeze(0).unsqueeze(2).to(self.device)  # Shape: [1, 336, 1]
+        x = self.rev_in_trend(x, 'norm')
         
         B, L, M = x.shape
         target_length = self.seq_len  # Maximum supported length
@@ -575,7 +576,7 @@ class TEMPO(nn.Module):
         
         # Ensure x is on the same device as the model
         x = x.to(self.device)
-        x = self.rev_in_trend(x, 'norm')
+       
         
         
         
