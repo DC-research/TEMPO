@@ -15,7 +15,7 @@ TEMPO is one of the very first open source **Time Series Foundation Models** for
 
 ## ⏳ Upcoming Features
 
-- [] Parallel pre-training pipeline
+- [✅] Parallel pre-training pipeline
 - [] Probabilistic forecasting
 - [] Multimodal dataset
 - [] Multimodal pre-training script
