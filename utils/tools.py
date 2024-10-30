@@ -95,6 +95,43 @@ class EarlyStopping:
         torch.save(model.state_dict(), path + '/' + 'checkpoint.pth')
         self.val_loss_min = val_loss
 
+class EarlyStopping_dist:
+    def __init__(self, patience=7, verbose=False, delta=0):
+        self.patience = patience
+        self.verbose = verbose
+        self.counter = 0
+        self.best_score = None
+        self.early_stop = False
+        self.val_loss_min = np.Inf
+        self.delta = delta
+        # self.dist = dist
+
+    def __call__(self, val_loss, model, path, rank=0):
+        score = -val_loss
+        if self.best_score is None:
+            self.best_score = score
+            self.save_checkpoint(val_loss, model, path, rank)
+        elif score < self.best_score + self.delta:
+            self.counter += 1
+            print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_score = score
+            self.save_checkpoint(val_loss, model, path, rank)
+            self.counter = 0
+
+    def save_checkpoint(self, val_loss, model, path, rank=0):
+        if self.verbose:
+            print(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
+        if rank == 0:
+            if isinstance(model, torch.nn.parallel.DistributedDataParallel):
+                torch.save(model.module.state_dict(), path + '/' + 'checkpoint.pth')
+            else:
+                torch.save(model.state_dict(), path + '/' + 'checkpoint.pth')
+        # torch.save(model.state_dict(), path + '/' + 'checkpoint.pth')
+        self.val_loss_min = val_loss
+
 
 class dotdict(dict):
     """dot.notation access to dictionary attributes"""
@@ -277,12 +314,20 @@ def vali(model, vali_data, vali_loader, criterion, args, device, itr):
     if args.model == 'PatchTST' or args.model == 'DLinear' or args.model == 'TCN' or args.model == 'NLinear' or args.model == 'NLinear_multi':
         model.eval()
     elif args.model == 'TEMPO' or args.model == 'TEMPO_t5' or 'multi' in args.model:
-        model.in_layer_trend.eval()
-        model.in_layer_season.eval()
-        model.in_layer_noise.eval()
-        model.out_layer_trend.eval()
-        model.out_layer_season.eval()
-        model.out_layer_noise.eval()
+        if isinstance(model, torch.nn.parallel.DistributedDataParallel):
+            model.module.in_layer_trend.eval()
+            model.module.in_layer_season.eval()
+            model.module.in_layer_noise.eval()
+            model.module.out_layer_trend.eval()
+            model.module.out_layer_season.eval()
+            model.module.out_layer_noise.eval()
+        else:
+            model.in_layer_trend.eval()
+            model.in_layer_season.eval()
+            model.in_layer_noise.eval()
+            model.out_layer_trend.eval()
+            model.out_layer_season.eval()
+            model.out_layer_noise.eval()
     elif args.model == 'GPT4TS' or args.model == 'GPT4TS_prompt':
         model.in_layer.eval()
         model.out_layer.eval()
@@ -325,12 +370,20 @@ def vali(model, vali_data, vali_loader, criterion, args, device, itr):
     if args.model == 'PatchTST' or args.model == 'DLinear' or args.model == 'TCN' or  args.model == 'NLinear' or  args.model == 'NLinear_multi':
         model.train()
     elif args.model == 'TEMPO' or args.model == 'TEMPO_t5' or 'multi' in args.model:
-        model.in_layer_trend.train()
-        model.in_layer_season.train()
-        model.in_layer_noise.train()
-        model.out_layer_trend.train()
-        model.out_layer_season.train()
-        model.out_layer_noise.train()
+        if isinstance(model, torch.nn.parallel.DistributedDataParallel):
+            model.module.in_layer_trend.train()
+            model.module.in_layer_season.train()
+            model.module.in_layer_noise.train()
+            model.module.out_layer_trend.train()
+            model.module.out_layer_season.train()
+            model.module.out_layer_noise.train()
+        else:
+            model.in_layer_trend.train()
+            model.in_layer_season.train()
+            model.in_layer_noise.train()
+            model.out_layer_trend.train()
+            model.out_layer_season.train()
+            model.out_layer_noise.train()
     elif args.model == 'GPT4TS' or args.model == 'GPT4TS_prompt':
         model.in_layer.train()
         model.out_layer.train()

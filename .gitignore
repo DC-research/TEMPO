@@ -33,4 +33,6 @@ logs/*
 lora_revin_*
 results_results
 results_results/*
+stl
+dataset
 
