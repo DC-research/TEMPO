@@ -15,6 +15,7 @@ from huggingface_hub import hf_hub_download
 import os
 import warnings
 from omegaconf import OmegaConf
+import torch.nn.functional as F
 
 criterion = nn.MSELoss()
 
@@ -239,7 +240,17 @@ class TEMPO(nn.Module):
         self.rev_in_season = RevIn(num_features=self.num_nodes).to(device)
         self.rev_in_noise = RevIn(num_features=self.num_nodes).to(device)
 
-    
+        self.loss_func = configs.loss_func
+        if self.loss_func == 'prob':
+            # Output layers for Student's t-distribution parameters
+            self.mu = nn.Linear(configs.pred_len, configs.pred_len)  # Mean
+            self.sigma = nn.Linear(configs.pred_len, configs.pred_len)  # Scale (standard deviation)
+            self.nu = nn.Linear(configs.pred_len, configs.pred_len)  # Degrees of freedom
+        elif self.loss_func == 'negative_binomial':
+            # Output layers for Negative Binomial parameters
+            self.mu = nn.Linear(configs.pred_len, configs.pred_len)  # Mean
+            self.alpha= nn.Linear(configs.pred_len, configs.pred_len) 
+            
     @classmethod
     def load_pretrained_model(
         cls,
@@ -533,6 +544,23 @@ class TEMPO(nn.Module):
         outputs = self.rev_in_trend(outputs, 'denorm')
         # if self.pool:
         #     return outputs, loss_local #loss_local - reduce_sim_trend - reduce_sim_season - reduce_sim_noise
+        if self.loss_func == 'prob':
+            outputs = rearrange(outputs, 'b l m-> b m l', b=B).squeeze()
+
+            mu = self.mu(outputs)
+            sigma = F.softplus(self.sigma(outputs)) + 1e-6  # Ensure scale is positive
+            nu = F.softplus(self.nu(outputs)) + 2   # Ensure degrees of freedom > 2
+            if test:
+                return (mu, sigma, nu), None
+            return (mu, sigma, nu), loss_local
+        elif self.loss_func == 'negative_binomial':
+            mu = F.softplus(self.mu(x)) + 1e-4  # Ensure mean is positive
+            alpha = F.softplus(self.alpha(x)) + 1e-4  # Ensure dispersion is positive
+            if test:
+                return (mu.permute(0,2,1), alpha.permute(0,2,1)), None  # Return to [Batch, Output length, Channel]
+            else:
+                return (mu.permute(0,2,1), alpha.permute(0,2,1)), loss_local
+        
         if test:
             return outputs, None
         return outputs, loss_local
@@ -606,5 +634,66 @@ class TEMPO(nn.Module):
                 current_input = torch.FloatTensor(new_sequence).unsqueeze(0).unsqueeze(2)
         # Trim to the desired length
         return np.array(all_predictions[:pred_length])
+    
+    def predict_prob(self, x, pred_length=96):
+        """
+        Predict using the TEMPO model.
+        
+        Args:
+        - x: Input time series data (shape: [B, L, M])
+        
+        Returns:
+        - Predicted output
+        """
+        pass
+        # self.eval()  # Set the model to evaluation mode
+
+        # x = torch.FloatTensor(x).unsqueeze(0).unsqueeze(2).to(self.device)  # Shape: [1, 336, 1]
+        # x = self.rev_in_trend(x, 'norm')
+        
+        # B, L, M = x.shape
+        # target_length = self.seq_len  # Maximum supported length
+        
+        # if L > target_length:
+        #     warnings.warn(f"Input length {L} is larger than the maximum supported length of {target_length}. "
+        #                   f"This may influence performance. Cutting the input to the last {target_length} time steps.")
+        #     x = x[:, -target_length:, :]
+        # elif L < target_length:
+        #     pad_length = target_length - L
+        #     if pad_length <= L:
+        #         # Pad by repeating the time series
+        #         x_padded = torch.cat([x] * (target_length // L + 1), dim=1)[:, :target_length, :]
+        #     else:
+        #         # Pad with zeros at the beginning
+        #         padding = torch.zeros(B, pad_length, M, device=x.device)
+        #         x_padded = torch.cat([padding, x], dim=1)
+            
+        #     x = x_padded
+        #     warnings.warn(f"Input length {L} is smaller than the required length of {target_length}. "
+        #                   f"The time series has been {'repeated' if pad_length <= L else 'zero-padded'} to reach the required length.")
+        
+        # # Ensure x is on the same device as the model
+        # x = x.to(self.device)
+
+        # with torch.no_grad():
+        #     current_input = x.clone()
+        #     all_predictions = []
+            
+        #     while len(all_predictions) < pred_length:
+        #         # Forward pass
+        #         outputs, _ = self.forward(current_input, test=True)
+        #         outputs = self.rev_in_trend(outputs, 'denorm')
+        #         step_size = outputs.shape[1]
+        #         # Extract the predicted values
+        #         predicted_values = outputs.cpu().squeeze().numpy()[-step_size:]
+                
+        #         # Append to all predictions
+        #         all_predictions.extend(predicted_values)
+                
+        #         # Update the input for the next iteration
+        #         new_sequence = np.concatenate([current_input.cpu().squeeze().numpy()[step_size:], predicted_values])
+        #         current_input = torch.FloatTensor(new_sequence).unsqueeze(0).unsqueeze(2)
+        # # Trim to the desired length
+        # return np.array(all_predictions[:pred_length])
             
         

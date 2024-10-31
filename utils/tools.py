@@ -9,6 +9,9 @@ from distutils.util import strtobool
 import pandas as pd
 
 from utils.metrics import metric
+from utils.imputation_metrics import mse_withmask, mae_withmask, calc_quantile_CRPS, calc_quantile_CRPS_sum
+
+import torch.distributions as dist
 
 plt.switch_backend('agg')
 
@@ -336,18 +339,18 @@ def vali(model, vali_data, vali_loader, criterion, args, device, itr):
         
     with torch.no_grad():
         for i, data in tqdm(enumerate(vali_loader)):
-            batch_x, batch_y, batch_x_mark, batch_y_mark, seq_trend, seq_seasonal, seq_resid = data[0], data[1], data[2], data[3], data[4], data[5], data[6]
+
+            batch_x, batch_y, batch_x_mark, batch_y_mark = data[0], data[1], data[2], data[3]
             batch_x = batch_x.float().to(device)
             batch_y = batch_y.float()
 
             batch_x_mark = batch_x_mark.float().to(device)
             batch_y_mark = batch_y_mark.float().to(device)
 
-            seq_trend = seq_trend.float().to(device)
-            seq_seasonal = seq_seasonal.float().to(device)
-            seq_resid = seq_resid.float().to(device)
-
             if args.model == 'GPT4TS_multi' or args.model == 'NLinear_multi' or 'TEMPO' in args.model:
+                seq_trend = seq_trend.float().to(device)
+                seq_seasonal = seq_seasonal.float().to(device)
+                seq_resid = seq_resid.float().to(device)
                 outputs, _ = model(batch_x, itr,  seq_trend, seq_seasonal, seq_resid)
             elif 'former' in args.model or args.model == 'FEDformer' or args.model == 'TimesNet' or args.model == 'LightTS':
                 dec_inp = torch.zeros_like(batch_y[:, -args.pred_len:, :]).float()
@@ -357,13 +360,17 @@ def vali(model, vali_data, vali_loader, criterion, args, device, itr):
                 outputs = model(batch_x, itr)
             
             # encoder - decoder
-            outputs = outputs[:, -args.pred_len:, :]
-            batch_y = batch_y[:, -args.pred_len:, :].to(device)
+            if args.loss_func == 'prob' or args.loss_func == 'negative_binomial':
+                batch_y = batch_y[:, -args.pred_len:, :].to(device)
+                loss = criterion(batch_y, outputs)
+            else:
+                outputs = outputs[:, -args.pred_len:, :]
+                batch_y = batch_y[:, -args.pred_len:, :].to(device)
 
-            pred = outputs.detach().cpu()
-            true = batch_y.detach().cpu()
+                pred = outputs.detach().cpu()
+                true = batch_y.detach().cpu()
 
-            loss = criterion(pred, true)
+                loss = criterion(pred, true)
 
             total_loss.append(loss)
     total_loss = np.average(total_loss)
@@ -468,16 +475,132 @@ def test(model, test_data, test_loader, args, device, itr):
 
     print(f'Average MAE: {mae}')
     print(f'Average MSE: {mse}')
-    # preds = np.array(preds)
-    # trues = np.array(trues)
-    # # mases = np.mean(np.array(mases))
-    # print('test shape:', preds.shape, trues.shape)
-    # preds = preds.reshape(-1, preds.shape[-2], preds.shape[-1])
-    # trues = trues.reshape(-1, trues.shape[-2], trues.shape[-1])
-    # print('test shape:', preds.shape, trues.shape)
-
-    # mae, mse, rmse, mape, mspe, smape, nd = metric(preds, trues)
-    # # print('mae:{:.4f}, mse:{:.4f}, rmse:{:.4f}, smape:{:.4f}, mases:{:.4f}'.format(mae, mse, rmse, smape, mases))
-    # print('mae:{:.4f}, mse:{:.4f}, rmse:{:.4f}, smape:{:.4f}'.format(mae, mse, rmse, smape))
-
+    
     return mse, mae
+
+from torch.distributions import NegativeBinomial
+
+def sample_negative_binomial(mu, alpha, num_samples=1):
+    """
+    Generate samples from a Negative Binomial distribution.
+    
+    Args:
+    mu (torch.Tensor): Mean parameter of the Negative Binomial distribution.
+    alpha (torch.Tensor): Dispersion parameter of the Negative Binomial distribution.
+    num_samples (int): Number of samples to generate for each mu-alpha pair.
+    
+    Returns:
+    torch.Tensor: Samples from the Negative Binomial distribution.
+    """
+    # Ensure mu and alpha are positive
+    mu = torch.clamp(mu, min=1e-6)
+    alpha = torch.clamp(alpha, min=1e-6)
+
+    # Calculate the parameters needed for PyTorch's NegativeBinomial distribution
+    r = 1 / alpha  # shape parameter (number of failures)
+    p = torch.clamp(1 / (1 + mu * alpha), min=1e-6, max=1-1e-6)  # success probability
+    
+    # Create the NegativeBinomial distribution
+    nb_dist = NegativeBinomial(total_count=r, probs=p)
+    
+    # Generate samples
+    samples = nb_dist.sample((num_samples,))
+    
+    return samples
+
+def test_probs(model, test_data, test_loader, args, device, itr):
+    preds = []
+    trues = []
+    # mases = []
+
+    # Initialize accumulators for errors
+    total_mae = 0
+    total_mse = 0
+    n_samples = 0
+
+    preds = []
+    trues = []
+    masks = []
+    means = []
+    stds = []
+
+    model.eval()
+    with torch.no_grad():
+        for i, data in tqdm(enumerate(test_loader), total=len(test_loader)):
+            
+            batch_x, batch_y, batch_x_mark, batch_y_mark = data[0], data[1], data[2], data[3] #, data[4], data[5], data[6]
+            batch_x = batch_x.float().to(device) 
+            batch_x_mark = batch_x_mark.float().to(device)
+            batch_y_mark = batch_y_mark.float().to(device)
+            batch_y = batch_y.float()
+
+            for channel in range(batch_x.shape[-1]):
+                if args.model == 'TEMPO' or args.model == 'TEMPO_t5' or 'multi' in args.model:
+                    seq_trend = seq_trend.float().to(device)
+                    seq_seasonal = seq_seasonal.float().to(device)
+                    seq_resid = seq_resid.float().to(device)
+                    outputs, _ = model(batch_x[:, -args.seq_len:, channel:channel+1], itr,  seq_trend[:, -args.seq_len:, :], seq_seasonal[:, -args.seq_len:, :], seq_resid[:, -args.seq_len:, :])
+                elif 'former' in args.model or args.model == 'FEDformer' or args.model == 'TimesNet' or args.model == 'LightTS':
+                    dec_inp = torch.zeros_like(batch_y[:, -args.pred_len:, :]).float()
+                    dec_inp = torch.cat([batch_y[:, :args.label_len, :], dec_inp], dim=1).float().to(device)
+                    outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+                else:
+                    outputs = model(batch_x[:, -args.seq_len:,  channel:channel+1], itr)
+
+                if args.loss_func == 'prob':
+                    mu, sigma, nu = outputs[0], outputs[1], outputs[2]
+                    # Create the Student's t-distribution with the predicted parameters
+                    student_t = dist.StudentT(df=nu, loc=mu, scale=sigma)
+                    # Generate 30 samples for each prediction
+                    num_samples = args.num_samples
+                    probabilistic_forecasts = student_t.rsample((num_samples,))
+                elif args.loss_func == 'negative_binomial':
+                    mu, alpha = outputs[0], outputs[1]
+                    probabilistic_forecasts = sample_negative_binomial(mu, alpha, args.num_samples)
+
+                # The shape of probabilistic_forecasts will be (num_samples, batch_size, pred_length)
+                preds.append(probabilistic_forecasts.cpu().numpy())
+                trues.append(batch_y[:,:, channel:channel+1].cpu().numpy())
+                masks.append(batch_x_mark[:,:, channel:channel+1].cpu().numpy())
+
+            torch.cuda.empty_cache()
+            
+    trues = np.array(trues)
+    preds = np.array(preds)
+    masks = np.array(masks)
+    trues= np.swapaxes(trues.squeeze(), -2, -3)
+    unormzalized_gt_data= np.swapaxes(trues.squeeze(), -1, -2)
+    masks= np.swapaxes(masks.squeeze(), -2, -3)
+    target_mask= np.swapaxes(masks.squeeze(), -1, -2)
+    preds= np.transpose(preds.squeeze(), (2, 1, 3, 0))
+
+
+    low_q = np.quantile(preds,0.05,axis=1)
+    high_q = np.quantile(preds,0.95,axis=1)
+    mid_q = np.quantile(preds,0.5,axis=1)
+
+    unormalized_synthetic_data = preds
+
+    print('MAE:', mae_withmask(torch.Tensor(unormzalized_gt_data),torch.Tensor(mid_q),torch.Tensor(target_mask)))
+
+    print('MSE:', mse_withmask(torch.Tensor(unormzalized_gt_data),torch.Tensor(mid_q),torch.Tensor(target_mask)))
+
+    # unormzalized_gt_data = np.swapaxes(unormzalized_gt_data, -1, -2)
+    # unormalized_synthetic_data = np.swapaxes(unormalized_synthetic_data, -1, -2)
+    # target_mask = np.swapaxes(target_mask, -1, -2)
+
+    # low_q = np.quantile(unormalized_synthetic_data,0.05,axis=1)
+    # high_q = np.quantile(unormalized_synthetic_data,0.95,axis=1)
+    # mid_q = np.quantile(unormalized_synthetic_data,0.5,axis=1)
+
+    
+    # unormzalized_gt_data = np.swapaxes(unormzalized_gt_data, -1, -2)
+    # unormalized_synthetic_data = np.swapaxes(unormalized_synthetic_data, -1, -2)
+    # target_mask = np.swapaxes(target_mask, -1, -2)
+
+    print('CRPS_Sum:', calc_quantile_CRPS_sum(torch.Tensor(unormzalized_gt_data),torch.Tensor(unormalized_synthetic_data),torch.Tensor(target_mask),mean_scaler=0,scaler=1))
+
+    print('CRPS:', calc_quantile_CRPS(torch.Tensor(unormzalized_gt_data),torch.Tensor(unormalized_synthetic_data),torch.Tensor(target_mask),mean_scaler=0,scaler=1))
+   
+    
+    return preds, trues #mse, mae
