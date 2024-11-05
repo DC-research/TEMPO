@@ -208,6 +208,9 @@ parser.add_argument('--electri_multiplier', type=int, default=1)
 parser.add_argument('--traffic_multiplier', type=int, default=1)
 parser.add_argument('--embed', type=str, default='timeF')
 
+#eval_data
+parser.add_argument('--eval_data', type=str, default='exchange')
+
 #args = parser.parse_args([])
 args = parser.parse_args()
 config = get_init_config(args.config_path)
