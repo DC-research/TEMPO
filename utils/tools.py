@@ -348,6 +348,7 @@ def vali(model, vali_data, vali_loader, criterion, args, device, itr):
             batch_y_mark = batch_y_mark.float().to(device)
 
             if args.model == 'GPT4TS_multi' or args.model == 'NLinear_multi' or 'TEMPO' in args.model:
+                seq_trend, seq_seasonal, seq_resid = data[4], data[5], data[6]
                 seq_trend = seq_trend.float().to(device)
                 seq_seasonal = seq_seasonal.float().to(device)
                 seq_resid = seq_resid.float().to(device)
