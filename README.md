@@ -5,13 +5,13 @@
 [![License: MIT](https://img.shields.io/badge/License-Apache--2.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
 </div>
 
-<div align="center"><img src=./pics/TEMPO_logo.png width=80% /></div>
+<div align="center"><img src=https://raw.githubusercontent.com/DC-research/TEMPO/main/tempo/pics/TEMPO_logo.png width=80% /></div>
 
 The official code for [["TEMPO: Prompt-based Generative Pre-trained Transformer for Time Series Forecasting (ICLR 2024)"]](https://arxiv.org/pdf/2310.04948).
 
 TEMPO is one of the very first open source **Time Series Foundation Models** for forecasting task v1.0 version.
 
-<div align="center"><img src=./pics/TEMPO.png width=80% /></div>
+<div align="center"><img src=https://raw.githubusercontent.com/DC-research/TEMPO/main/tempo/pics/TEMPO.png width=80% /></div>
 
 ## ⏳ Upcoming Features
 
@@ -45,7 +45,7 @@ conda create -n tempo python=3.8
 conda activate tempo
 ```
 ```
-pip install -r requirements.txt
+pip install timeagi
 ```
 
 ## Script Demo
@@ -90,7 +90,7 @@ We use the following Colab page to show the demo of building the customer datase
 
 Please try our foundation model demo [[here]](https://4171a8a7484b3e9148.gradio.live).
 
-<div align="center"><img src=./pics/TEMPO_demo.jpg width=80% /></div>
+<div align="center"><img src=https://raw.githubusercontent.com/DC-research/TEMPO/main/tempo/pics/TEMPO_demo.jpg width=80% /></div>
 
 ## Practice on your end
 
@@ -117,7 +117,7 @@ After training, we can test TEMPO model under the zero-shot setting:
 bash [ecl, etth1, etth2, ettm1, ettm2, traffic, weather]_test.sh
 ```
 
-<div align="center"><img src=./pics/results.jpg width=90% /></div>
+<div align="center"><img src=https://raw.githubusercontent.com/DC-research/TEMPO/main/tempo/pics/results.jpg width=90% /></div>
 
 
 ## Pre-trained Models
@@ -128,16 +128,16 @@ You can download the pre-trained model from [[Google Drive]](https://drive.googl
 
 Here is the prompts use to generate the coresponding textual informaton of time series via [[OPENAI ChatGPT-3.5 API]](https://platform.openai.com/docs/guides/text-generation)
 
-<div align="center"><img src=./pics/TETS_prompt.png width=80% /></div>
+<div align="center"><img src=https://raw.githubusercontent.com/DC-research/TEMPO/main/tempo/pics/TETS_prompt.png width=80% /></div>
 
 The time series data are come from [[S&P 500]](https://www.spglobal.com/spdji/en/indices/equity/sp-500/#overview). Here is the EBITDA case for one company from the dataset:
 
 
-<div align="center"><img src=./pics/Company1_ebitda_summary.png width=80% /></div>
+<div align="center"><img src=https://raw.githubusercontent.com/DC-research/TEMPO/main/tempo/pics/Company1_ebitda_summary.png width=80% /></div>
 
 Example of generated contextual information for the Company marked above:
 
-<div align="center"><img src=./pics/Company1_ebitda_summary_words.jpg width=80% /></div>
+<div align="center"><img src=https://raw.githubusercontent.com/DC-research/TEMPO/main/tempo/pics//Company1_ebitda_summary_words.jpg width=80% /></div>
 
 
 

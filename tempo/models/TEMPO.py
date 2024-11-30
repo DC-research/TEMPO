@@ -6,10 +6,10 @@ from torch import optim
 from transformers.models.gpt2.modeling_gpt2 import GPT2Model
 from transformers import BertTokenizer, BertModel
 from einops import rearrange
-from embed import DataEmbedding, DataEmbedding_wo_time
+from tempo.embed import DataEmbedding, DataEmbedding_wo_time
 from transformers.models.gpt2.configuration_gpt2 import GPT2Config
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
-from utils.rev_in import RevIn
+from tempo.utils.rev_in import RevIn
 from peft import get_peft_config, PeftModel, PeftConfig, get_peft_model, LoraConfig, TaskType
 from huggingface_hub import hf_hub_download
 import os
