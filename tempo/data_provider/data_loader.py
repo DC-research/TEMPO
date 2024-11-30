@@ -5,8 +5,8 @@ import os
 import torch
 from torch.utils.data import Dataset, DataLoader
 from sklearn.preprocessing import StandardScaler
-from utils.timefeatures import time_features
-from utils.tools import convert_tsf_to_dataframe
+from tempo.utils.timefeatures import time_features
+from tempo.utils.tools import convert_tsf_to_dataframe
 import warnings
 from pathlib import Path
 import pickle
