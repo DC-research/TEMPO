@@ -1,13 +1,13 @@
-from data_provider.data_factory import data_provider
-from utils.tools import EarlyStopping, adjust_learning_rate, visual, vali, test, test_probs
+from tempo.data_provider.data_factory import data_provider
+from tempo.utils.tools import EarlyStopping, adjust_learning_rate, visual, vali, test, test_probs
 from torch.utils.data import Subset
 from tqdm import tqdm
-from models.PatchTST import PatchTST
-from models.GPT4TS import GPT4TS
-from models.DLinear import DLinear
-from models.TEMPO import TEMPO
-from models.T5 import T54TS
-from models.ETSformer import ETSformer
+from tempo.models.PatchTST import PatchTST
+from tempo.models.GPT4TS import GPT4TS
+from tempo.models.DLinear import DLinear
+from tempo.models.TEMPO import TEMPO
+from tempo.models.T5 import T54TS
+from tempo.models.ETSformer import ETSformer
 
 
 import numpy as np

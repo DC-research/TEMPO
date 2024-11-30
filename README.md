@@ -23,6 +23,7 @@ TEMPO is one of the very first open source **Time Series Foundation Models** for
 
 ## 🚀 News
 
+- **Nov 2024**: 🚀 We've published **TimeAGI** on PyPI! Now you can simply `pip install timeagi` to get started and try **TEMPO** by `from tempo.models.TEMPO import TEMPO`. Check out our demo for more details: [TimeAGI](https://pypi.org/project/timeagi/)!
 
 - **Oct 2024**: 🚀 We've streamlined our code structure, enabling users to download the pre-trained model and perform zero-shot inference with a single line of code! Check out our [demo](./run_TEMPO_demo.py) for more details. Our model's download count on HuggingFace is now trackable!
 
@@ -58,7 +59,7 @@ import numpy as np
 import torch
 from numpy.random import choice
 # Local imports
-from models.TEMPO import TEMPO
+from tempo.models.TEMPO import TEMPO
 
 
 model = TEMPO.load_pretrained_model(

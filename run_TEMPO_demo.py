@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from numpy.random import choice
 # Local imports
-from models.TEMPO import TEMPO
+from tempo.models.TEMPO import TEMPO
 from utils.tools import load_data_from_huggingface
 
 
