@@ -6,7 +6,7 @@ from einops import rearrange
 from math import sqrt, log
 import matplotlib.pyplot as plt
 
-from embed import DataEmbedding_wo_time
+from tempo.embed import DataEmbedding_wo_time
 
 import random
 
