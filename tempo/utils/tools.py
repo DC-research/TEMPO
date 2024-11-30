@@ -8,8 +8,8 @@ from datetime import datetime
 from distutils.util import strtobool
 import pandas as pd
 
-from utils.metrics import metric
-from utils.imputation_metrics import mse_withmask, mae_withmask, calc_quantile_CRPS, calc_quantile_CRPS_sum
+from tempo.utils.metrics import metric
+from tempo.utils.imputation_metrics import mse_withmask, mae_withmask, calc_quantile_CRPS, calc_quantile_CRPS_sum
 
 import torch.distributions as dist
 
