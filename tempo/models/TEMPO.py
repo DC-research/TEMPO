@@ -631,7 +631,7 @@ class TEMPO(nn.Module):
                 
                 # Update the input for the next iteration
                 new_sequence = np.concatenate([current_input.cpu().squeeze().numpy()[step_size:], predicted_values])
-                current_input = torch.FloatTensor(new_sequence).unsqueeze(0).unsqueeze(2)
+                current_input = torch.FloatTensor(new_sequence).unsqueeze(0).unsqueeze(2).to(self.device)
         # Trim to the desired length
         return np.array(all_predictions[:pred_length])
     
